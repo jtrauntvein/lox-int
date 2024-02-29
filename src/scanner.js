@@ -11,6 +11,41 @@ function is_digit(ch) {
 }
 
 /**
+ * @return {boolean} Returns true if the given character is an alpha character or alphanumeric
+ * @param {string} ch Specifies the character to test
+ * @param {boolean=false} check_number Set to true if the check for a numeric should also be used
+ */
+function is_alpha(ch, check_number = false) {
+   let rtn = ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'z') || ch === '_');
+   if(!rtn && check_number)
+      rtn = is_digit(ch);
+   return rtn;
+}
+
+/**
+ * Specifies a mapping of reserved identifiers.  These are keyed by the identifier name and the value is the token type.
+ */
+const reserved_words = {
+   "and": Token.token_types.AND,
+   "or": Token.token_types.OR,
+   "if": Token.token_types.IF,
+   "for": Token.token_types.FOR,
+   "while": Token.token_types.WHILE,
+   "else": Token.token_types.ELSE,
+   "class": Token.token_types.CLASS,
+   "nil": Token.token_types.NIL,
+   "fun": Token.token_types.FUN,
+   "true": Token.token_types.TRUE,
+   "false": Token.token_types.FALSE,
+   "print": Token.token_types.PRINT,
+   "return": Token.token_types.RETURN,
+   "super": Token.token_types.SUPER,
+   "this": Token.token_types.THIS,
+   "var": Token.token_types.VAR
+};
+Object.freeze(reserved_words);
+
+/**
  * Defines the object that is responsible far scanning input and breaking it down into tokens
  */
 class Scanner {
@@ -155,6 +190,8 @@ class Scanner {
       default:
          if(is_digit(ch))
             this.#number(ch);
+         else if(is_alpha(ch))
+            this.#identifier();
          else
             lox_error(this.#line, `Unexpected character '${ch}`);
          break;
@@ -317,6 +354,22 @@ class Scanner {
       }
       else
          lox_error(this.#line, "invalid number format");
+   }
+
+   /**
+    * Responsible for parsing a reserved word or a program variable token name
+    */
+   #identifier() {
+      // scan for the end of the identifier sequence
+      while(is_alpha(this.#peek(), true))
+         this.#advance();
+
+      // this identifier may be a user defined name or it may be a reserved word.  If it is not reserved, than it will be 
+      // treated as a user defined name.
+      const name = this.#source.slice(this.#start, this.#current).join("");
+      const reserved_token = reserved_words[name];
+      const token_type = (reserved_token ?? Token.token_types.IDENTIFIER);
+      this.#add_token(token_type);
    }
 }
 
